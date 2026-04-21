@@ -200,7 +200,7 @@ document.getElementById("rp-side").innerHTML=sideHTML;
 
 document.getElementById("rp-bottom-full").innerHTML=bottomHTML;
 
-};
+}
 
 
 
