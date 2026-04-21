@@ -200,4 +200,214 @@ document.getElementById("rp-side").innerHTML=sideHTML;
 
 document.getElementById("rp-bottom-full").innerHTML=bottomHTML;
 
+};
+
+
+
+
+
+ /* ================= LABEL OTOMATIS DARI FEED ================= */
+
+function getFeedLabel(){
+
+/* ambil semua script feed */
+var scripts = document.getElementsByTagName("script");
+
+for(var i=0;i<scripts.length;i++){
+
+var src = scripts[i].src;
+
+/* cek jika itu feed label */
+if(src && src.includes("/feeds/posts/default/-/")){
+
+/* ambil label dari URL */
+var label = src.split("/-/")[1];
+
+/* hapus parameter */
+label = label.split("?")[0];
+
+/* decode spasi */
+label = decodeURIComponent(label);
+
+/* tampilkan badge */
+return '<span class="label-badge">'+label+'</span>';
+
 }
+
+}
+
+/* fallback jika tidak ada */
+return "";
+
+}
+
+var slideIndex = 0;
+var slidesData = [];
+
+/* ================= FORMAT DATE ================= */
+function formatDate(d){
+var date = new Date(d);
+return date.toLocaleDateString("id-ID",{
+day:"numeric",
+month:"short",
+year:"numeric"
+});
+}
+
+/* ================= LABEL (1 LABEL SAJA) ================= */
+function getLabel(entry){
+
+if(entry.category && entry.category.length > 0){
+
+/* ambil label pertama dari RSS */
+var label = entry.category[0].term;
+
+/* tampil sebagai badge */
+return '<span class="label-badge">'+label+'</span>';
+
+}
+
+return "";
+
+}
+
+/* ================= IMAGE ================= */
+function getImage(entry){
+var content = entry.content.$t;
+var img = content.match(/<img.+?src="([^"]+)"/);
+if(img){
+return img[1];
+}
+return "https://via.placeholder.com/800x450";
+}
+
+/* ================= MAIN FUNCTION ================= */
+function recentPosts(json){
+
+var smallHTML = "";
+
+/* 1 SLIDER + 8 GRID */
+for(var i=0;i<9;i++){
+
+if(!json.feed.entry[i]) break;
+
+var entry = json.feed.entry[i];
+
+var title = entry.title.$t;
+
+var link = "";
+
+for(var j=0;j<entry.link.length;j++){
+if(entry.link[j].rel=="alternate"){
+link = entry.link[j].href;
+break;
+}
+}
+
+var img = getImage(entry);
+var date = formatDate(entry.published.$t);
+var label = getFeedLabel();
+
+/* SAVE SLIDES */
+slidesData.push({title,link,img,date,label});
+
+/* SLIDER (5 POST) */
+if(i < 5){
+document.getElementById("slider").innerHTML += `
+<div class="slide">
+<a href="${link}">
+<img loading="lazy" src="${img}">
+</a>
+
+<div class="slide-info">
+<div class="slide-title">
+<a href="${link}">${title}</a>
+</div>
+
+<div class="slide-meta">
+${date} | ${label}
+</div>
+
+</div>
+</div>
+`;
+}
+
+/* GRID 8 POST */
+if(i > 0 && i <= 8){
+smallHTML += `
+<div>
+
+<div class="small-item">
+<a href="${link}">
+<img loading="lazy" src="${img}">
+</a>
+</div>
+
+<div class="small-title">
+<a href="${link}">${title}</a>
+</div>
+
+<div class="small-meta">
+${date} | ${label}
+</div>
+
+</div>
+`;
+}
+
+}
+
+/* RENDER */
+document.getElementById("smallPosts").innerHTML = smallHTML;
+
+document.getElementById("skeleton").style.display = "none";
+document.getElementById("content").style.display = "block";
+
+showSlide(0);
+}
+
+/* ================= SLIDE CONTROL ================= */
+function showSlide(n){
+
+var slides = document.getElementsByClassName("slide");
+
+if(n >= slides.length) slideIndex = 0;
+if(n < 0) slideIndex = slides.length - 1;
+
+for(var i=0;i<slides.length;i++){
+slides[i].style.display = "none";
+}
+
+slides[slideIndex].style.display = "block";
+}
+
+function changeSlide(n){
+slideIndex += n;
+showSlide(slideIndex);
+}
+
+/* AUTO SLIDE */
+setInterval(function(){
+slideIndex++;
+showSlide(slideIndex);
+},5000);
+
+/* SWIPE MOBILE */
+var startX = 0;
+
+document.getElementById("slider").addEventListener("touchstart",function(e){
+startX = e.touches[0].clientX;
+});
+
+document.getElementById("slider").addEventListener("touchend",function(e){
+var endX = e.changedTouches[0].clientX;
+
+if(startX - endX > 50){
+changeSlide(1);
+}
+
+if(endX - startX > 50){
+changeSlide(-1);
+}
+});
